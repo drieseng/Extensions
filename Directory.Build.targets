@@ -3,4 +3,54 @@
     <RuntimeFrameworkVersion Condition=" '$(TargetFramework)' == 'netcoreapp3.0' ">$(MicrosoftNETCoreAppPackageVersion)</RuntimeFrameworkVersion>
     <NETStandardImplicitPackageVersion Condition=" '$(TargetFramework)' == 'netstandard2.0' ">$(NETStandardLibrary20PackageVersion)</NETStandardImplicitPackageVersion>
   </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="xunit.runner.console" Version="2.4.1" Condition="'$(TargetFrameworkIdentifier)' == '.NETFramework'" />
+    <DistributedTestPlatform Include="Windows10.x64" />
+  </ItemGroup>
+
+
+  <Target Name="CreateTestPayload" Returns="@(TestPayload)">
+
+    <ItemGroup>
+      <_TargetFrameworks Remove="@(_TargetFrameworks)" />
+      <_TargetFrameworks Include="$(TargetFrameworks);$(TargetFramework)" />
+    </ItemGroup>
+
+    <MSBuild Projects="$(MSBuildProjectFullPath)"
+             Targets="_CreateTestPayloadInner"
+             Properties="TargetFramework=%(_TargetFrameworks.Identity)">
+      <Output TaskParameter="TargetOutputs" ItemName="TestPayload" />
+    </MSBuild>
+  </Target>
+
+  <Target Name="CollectXunitConsoleRunner" Condition="'$(TargetFrameworkIdentifier)' == '.NETFramework'">
+    <PropertyGroup>
+      <XunitConsoleRunnerDir>$([System.IO.Path]::GetDirectoryName($(XunitConsole472Path)))</XunitConsoleRunnerDir>
+    </PropertyGroup>
+
+    <ItemGroup>
+      <XunitConsoleRunnerFiles Include="$(XunitConsoleRunnerDir)/**/*" />
+    </ItemGroup>
+
+    <Copy SourceFiles="@(XunitConsoleRunnerFiles)" DestinationFolder="$(PublishDir)" />
+  </Target>
+
+  <Target Name="_CreateTestPayloadInner" DependsOnTargets="Publish;CollectXunitConsoleRunner" Condition="'$(IsTestProject)' == 'true'" Returns="@(TestPayload)">
+
+    <ConvertToAbsolutePath Paths="$(PublishDir)">
+      <Output TaskParameter="AbsolutePaths" PropertyName="PublishAbsoluteDir" />
+    </ConvertToAbsolutePath>
+
+    <ItemGroup>
+      <TestPayload Include="$(PublishAbsoluteDir)">
+        <TestAssembly>$(TargetFileName)</TestAssembly>
+        <TestName>$(MSBuildProjectName)/$(TargetFramework)</TestName>
+        <Command Condition=" '$(TargetFrameworkIdentifier)' == '.NETFramework' ">xunit.console.exe $(TargetFileName) -xml testResults.xml</Command>
+        <!-- TODO: making .NET Core report the right XML format -->
+        <Command Condition=" '$(TargetFrameworkIdentifier)' == '.NETCoreApp' ">dotnet vstest $(TargetFileName) --logger:trx</Command>
+        <TestPlatform>%(DistributedTestPlatform.Identity)</TestPlatform>
+      </TestPayload>
+    </ItemGroup>
+  </Target>
 </Project>

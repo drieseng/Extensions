@@ -12,4 +12,40 @@
              Targets="Publish"
              Properties="$(SolutionBuildProperties)" />
   </Target>
+
+<!-- will move into korebuild -->
+  <PropertyGroup>
+    <DefaultHelixTestTimeout>00:30:00</DefaultHelixTestTimeout>
+  </PropertyGroup>
+
+  <Target Name="Helix">
+
+    <PropertyGroup Condition="'$(WaitForHelix)' == ''">
+      <WaitForHelix Condition=" '$(CI)' == 'true' ">true</WaitForHelix>
+    </PropertyGroup>
+
+    <MSBuild Projects="@(ProjectsToTest)"
+             Targets="CreateTestPayload"
+             BuildInParallel="true">
+      <Output TaskParameter="TargetOutputs" ItemName="TestPayload" />
+    </MSBuild>
+
+    <ItemGroup>
+      <_TestPayloadItem Include="$(MSBuildThisFileDirectory)..\test\helix.proj">
+        <AdditionalProperties>
+          Version=$(Version);
+          TestDirectory=%(TestPayload.Identity);
+          TestName=%(TestPayload.TestName);
+          TestCommand=%(TestPayload.Command);
+          TestPlatform=%(TestPayload.TestPlatform)
+        </AdditionalProperties>
+      </_TestPayloadItem>
+    </ItemGroup>
+
+    <MSBuild Projects="@(_TestPayloadItem)"
+             Targets="Test"
+             Properties="WaitForWorkItemCompletion=$(WaitForHelix)"
+             BuildInParallel="true" />
+  </Target>
+
 </Project>
