@@ -20,6 +20,7 @@
     <ItemGroup>
       <UnusedBaselinePackageReference Include="@(BaselinePackageReference)" Exclude="@(Reference)" />
       <UnusedLatestPackageReference Include="@(LatestPackageReference)" Exclude="@(Reference)" />
+      <UnusedProjectReferenceProvider Include="@(ProjectReferenceProvider)" Exclude="@(Reference)" />
 
       <PackageReference Condition="'$(UseLatestPackageReferences)' != 'true'"
         Include="@(BaselinePackageReference)"
@@ -32,13 +33,43 @@
         IsImplicitlyDefined="true" />
 
       <Reference Remove="@(PackageReference)" />
+
+      <_ProjectReference Condition="'$(UseLatestPackageReferences)' == 'true'"
+        Include="@(ProjectReferenceProvider)"
+        Exclude="@(UnusedProjectReferenceProvider)" />
+
+      <ProjectReference Include="@(_ProjectReference->'%(ProjectPath)')" />
+
+      <Reference Remove="@(_ProjectReference)" />
     </ItemGroup>
 
     <Warning Condition="@(UnusedBaselinePackageReference->Count()) != 0"
-             Text="Package references changed since the last release. This could be a breaking change." />
+             Text="Package references changed since the last release. This could be a breaking change. References removed:%0A - @(UnusedBaselinePackageReference, '%0A -')" />
 
     <Error Condition="'$(TargetFrameworkIdentifier)' != '.NETFramework' AND '%(Reference.Identity)' != '' AND ! Exists('%(Reference.Identity)')"
            Code="MSB3245"
            Text="Could not resolve this reference. Could not locate the package or project for &quot;%(Reference.Identity)&quot;" />
+  </Target>
+
+  <Target Name="GetReferencesProvided" Returns="@(ProvidesReference)">
+    <ItemGroup>
+      <_TargetFramework Remove="@(_TargetFramework)" />
+      <_TargetFramework Include="$(TargetFramework)" Condition="'$(TargetFramework)' != '' "/>
+      <_TargetFramework Include="$(TargetFrameworks)" Condition="'$(TargetFramework)' == '' "/>
+    </ItemGroup>
+
+    <MSBuild Projects="$(MSBuildProjectFullPath)"
+             Targets="_GetReferencesProvided"
+             Properties="TargetFramework=%(_TargetFramework.Identity)">
+      <Output TaskParameter="TargetOutputs" ItemName="ProvidesReference" />
+    </MSBuild>
+  </Target>
+
+  <Target Name="_GetReferencesProvided" Returns="@(ProvidesReference)">
+    <ItemGroup Condition=" '$(IsImplementationProject)' == 'true' ">
+      <ProvidesReference Include="$(AssemblyName)">
+        <ProjectFileRelativePath>$([MSBuild]::MakeRelative($(RepositoryRoot), $(MSBuildProjectFullPath)))</ProjectFileRelativePath>
+      </ProvidesReference>
+    </ItemGroup>
   </Target>
 </Project>
