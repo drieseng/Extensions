@@ -3,28 +3,67 @@
   <!-- Version included until we get global.json generation to support this SDK. -->
   <Sdk Name="Microsoft.DotNet.Helix.Sdk" Version="1.0.0-beta.18502.3" />
 
-  <Target Name="_CheckForValidConfig" BeforeTargets="Test">
+  <!--<Target Name="_CheckForValidConfig" BeforeTargets="Test">
     <Error Text="Missing required property: TestDirectory" Condition=" '$(TestDirectory)' == '' "/>
     <Error Text="Missing required property: TestPlatform" Condition=" '$(TestPlatform)' == '' "/>
     <Error Text="Missing required property: TestName" Condition=" '$(TestName)' == '' "/>
-    <Error Text="Missing required property: TestCommand" Condition=" '$(TestCommand)' == '' "/>
+    <Error Text="Missing required property: Tests" Condition=" '$(TestCommand)' == '' "/>
 
-    <!-- TODO: get an actual link -->
+    --><!-- TODO: get an actual link --><!--
     <Error Text="Could not identify the helix queue for Testplatform '$(TestPlatform)'. See https://whatever.com for a list." Condition=" '$(HelixTargetQueues)' == '' "/>
+  </Target>-->
+
+  <Target Name="Gather" BeforeTargets="Test">
+    <ItemGroup>
+      <ProjectsToTest Include="$(ProjectsToTest)" />
+    </ItemGroup>
+
+    <MSBuild Projects="@(ProjectsToTest)"
+              Targets="CreateTestPayload"
+              BuildInParallel="true">
+      <Output TaskParameter="TargetOutputs" ItemName="TestPayload" />
+    </MSBuild>
+    <ItemGroup>
+      <TestProp Include="$(ProjectsToTest)" />
+    </ItemGroup>
+
+    <ItemGroup>
+      <!-- Directory that is zipped up and sent as a correlation payload -->
+      <!--<HelixCorrelationPayload Include="..\testassets" />-->
+
+      <!-- Workitem that is run on a machine from the $(HelixTargetQueues) queue -->
+      <HelixWorkItem Include="%(TestPayload.TestName)">
+        <Command>%(TestPayload.Command)</Command>
+        <!-- A directory that is zipped up and send as the work item payload -->
+        <PayloadDirectory>%(TestPayload.Identity)</PayloadDirectory>
+
+        <!-- A TimeSpan that specifies the work item execution timeout -->
+        <Timeout>00:30:00</Timeout>
+
+        <!-- Commands that will run before the work item command -->
+        <PreCommands>echo 'pepperoni';echo 'cheese'</PreCommands>
+
+        <!-- Commands that will run after the work item command -->
+        <PostCommands>echo 'crust';echo 'oven'</PostCommands>
+      </HelixWorkItem>
+    </ItemGroup>
   </Target>
 
   <PropertyGroup>
     <!-- The 'source' value reported to helix  -->
-    <HelixSource>pr/extensions/test/$(TestName)</HelixSource>
+    <HelixSource>pr/extensions/tests</HelixSource>
     <!-- The 'type' value reported to helix  -->
     <HelixType>test/haok</HelixType>
     <!-- The 'build' value reported to helix  -->
-    <HelixBuild>$(Version)</HelixBuild>
+    <HelixBuild>11-1-1</HelixBuild>
     <HelixAccessToken>e888ebc345b7d82c5cf54b4501fc430433deb6eb</HelixAccessToken>
+    <WaitForWorkItemCompletion>false</WaitForWorkItemCompletion>
 
 
     <!-- The helix queue this job should run on. -->
-    <HelixTargetQueues Condition="'$(TestPlatform)' == 'Windows10.x64'">Windows.10.Amd64.Open</HelixTargetQueues>
+    <!--<HelixTargetQueues Condition="'$(TestPlatform)' == 'Windows10.x64'">Windows.10.Amd64.Open</HelixTargetQueues>-->
+    <!-- <HelixTargetQueues>Windows.10.Amd64.Open</HelixTargetQueues> -->
+    <HelixTargetQueues>Windows.10.Amd64.Open;Ubuntu.1604.Open</HelixTargetQueues>
     
     <!--
       'true' to enable the xunit reporter. Default 'false'
@@ -50,38 +89,18 @@
     <HelixPostCommands>$(HelixPostCommands);echo 'after'</HelixPostCommands>
   </PropertyGroup>
 
-  <ItemGroup>
-    <!-- Directory that is zipped up and sent as a correlation payload -->
-    <!-- <HelixCorrelationPayload Include="..\testassets" /> -->
+  <!--<ItemGroup>
+    <_TestPayloadItem Include="$(MSBuildThisFileDirectory)..\test\helix.proj">
+      <AdditionalProperties>
+        Version=11-1-$(Version);
+        TestDirectory=%(TestPayload.Identity);
+        TestName=%(TestPayload.TestName);
+        TestCommand=%(TestPayload.Command);
+        TestPlatform=%(TestPayload.TestPlatform);
+      </AdditionalProperties>
+    </_TestPayloadItem>
+    <HelixJobs Include="%(TestPayload.Identity)" />
+  </ItemGroup>-->
 
-    <!-- Workitem that is run on a machine from the $(HelixTargetQueues) queue -->
-    <HelixWorkItem Include="$(TestName)-2">
-      <Command>$(TestCommand)</Command>
-      <!-- A directory that is zipped up and send as the work item payload -->
-      <PayloadDirectory>$(TestDirectory.TrimEnd('\').TrimEnd('/'))</PayloadDirectory>
-
-      <!-- A TimeSpan that specifies the work item execution timeout -->
-      <Timeout>00:30:00</Timeout>
-
-      <!-- Commands that will run before the work item command -->
-      <PreCommands>echo 'pepperoni';echo 'cheese'</PreCommands>
-
-      <!-- Commands that will run after the work item command -->
-      <PostCommands>echo 'crust';echo 'oven'</PostCommands>
-    </HelixWorkItem>
-    <HelixWorkItem Include="$(TestName)-1">
-      <Command>$(TestCommand)</Command>
-      <!-- A directory that is zipped up and send as the work item payload -->
-      <PayloadDirectory>$(TestDirectory.TrimEnd('\').TrimEnd('/'))</PayloadDirectory>
-
-      <!-- A TimeSpan that specifies the work item execution timeout -->
-      <Timeout>00:30:00</Timeout>
-
-      <!-- Commands that will run before the work item command -->
-      <PreCommands>echo 'pepperoni';echo 'cheese'</PreCommands>
-
-      <!-- Commands that will run after the work item command -->
-      <PostCommands>echo 'crust';echo 'oven'</PostCommands>
-    </HelixWorkItem>
-  </ItemGroup>
+  
 </Project>

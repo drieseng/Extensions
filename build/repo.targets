@@ -20,7 +20,17 @@
 
   <Target Name="Helix">
 
-    <PropertyGroup Condition="'$(WaitForHelix)' == ''">
+    <PropertyGroup>
+      <ProjectsToTestList>@(ProjectsToTest)</ProjectsToTestList>
+    </PropertyGroup>
+
+    <MSBuild Projects="$(MSBuildThisFileDirectory)..\test\helix.proj"
+             Targets="Test"
+             Properties="ProjectsToTest=$(ProjectsToTestList)"
+             BuildInParallel="true" />
+
+    <!--<PropertyGroup Condition="'$(WaitForHelix)' == ''">
+      <WaitForHelix>false</WaitForHelix>
       <WaitForHelix Condition=" '$(CI)' == 'true' ">true</WaitForHelix>
     </PropertyGroup>
 
@@ -33,19 +43,26 @@
     <ItemGroup>
       <_TestPayloadItem Include="$(MSBuildThisFileDirectory)..\test\helix.proj">
         <AdditionalProperties>
-          Version=$(Version);
+          Version=11-1-$(Version);
           TestDirectory=%(TestPayload.Identity);
           TestName=%(TestPayload.TestName);
           TestCommand=%(TestPayload.Command);
-          TestPlatform=%(TestPayload.TestPlatform)
+          TestPlatform=%(TestPayload.TestPlatform);
         </AdditionalProperties>
       </_TestPayloadItem>
+      <HelixJobs Include="%(TestPayload.Identity)" />
     </ItemGroup>
 
+    <WriteLinesToFile
+        File="$(MSBuildThisFileDirectory)..\test\helixJobs.props"
+        Lines="@HelixJobs"
+        Overwrite="true"
+        Encoding="Unicode"/>
+    
     <MSBuild Projects="@(_TestPayloadItem)"
              Targets="Test"
              Properties="WaitForWorkItemCompletion=$(WaitForHelix)"
-             BuildInParallel="true" />
+             BuildInParallel="true" />-->
   </Target>
 
 </Project>

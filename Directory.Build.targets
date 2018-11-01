@@ -43,7 +43,7 @@
     </ConvertToAbsolutePath>
 
     <ItemGroup>
-      <TestPayload Include="$(PublishAbsoluteDir)">
+      <TestPayload Include="$(PublishAbsoluteDir.TrimEnd('\').TrimEnd('/'))">
         <TestAssembly>$(TargetFileName)</TestAssembly>
         <TestName>$(MSBuildProjectName)/$(TargetFramework)</TestName>
         <Command Condition=" '$(TargetFrameworkIdentifier)' == '.NETFramework' ">xunit.console.exe $(TargetFileName) -xml testResults.xml</Command>
