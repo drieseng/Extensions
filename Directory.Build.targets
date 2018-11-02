@@ -43,7 +43,13 @@
     </ConvertToAbsolutePath>
 
     <ItemGroup>
-      <TestPayload Include="$(PublishAbsoluteDir.TrimEnd('\').TrimEnd('/'))">
+        <_CopyItems Include="$(PublishAbsoluteDir)\*.*" />
+    </ItemGroup>
+
+    <Move SourceFiles="@(_CopyItems)" DestinationFolder="$(PublishAbsoluteDir)\$(MSBuildProjectName).$(TargetFramework).Helix" />
+
+    <ItemGroup>
+      <TestPayload Include="$(PublishAbsoluteDir)\$(MSBuildProjectName).$(TargetFramework).Helix">
         <TestAssembly>$(TargetFileName)</TestAssembly>
         <TestName>$(MSBuildProjectName)/$(TargetFramework)</TestName>
         <Command Condition=" '$(TargetFrameworkIdentifier)' == '.NETFramework' ">xunit.console.exe $(TargetFileName) -xml testResults.xml</Command>

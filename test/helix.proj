@@ -55,15 +55,14 @@
     <!-- The 'type' value reported to helix  -->
     <HelixType>test/haok</HelixType>
     <!-- The 'build' value reported to helix  -->
-    <HelixBuild>11-1-1</HelixBuild>
+    <HelixBuild>$([System.DateTime]::Now.ToString(yyyyMMdd-hhmmss))</HelixBuild>
     <HelixAccessToken>e888ebc345b7d82c5cf54b4501fc430433deb6eb</HelixAccessToken>
     <WaitForWorkItemCompletion>false</WaitForWorkItemCompletion>
 
-
     <!-- The helix queue this job should run on. -->
     <!--<HelixTargetQueues Condition="'$(TestPlatform)' == 'Windows10.x64'">Windows.10.Amd64.Open</HelixTargetQueues>-->
-    <!-- <HelixTargetQueues>Windows.10.Amd64.Open</HelixTargetQueues> -->
-    <HelixTargetQueues>Windows.10.Amd64.Open;Ubuntu.1604.Open</HelixTargetQueues>
+    <HelixTargetQueues>Windows.10.Amd64.Open</HelixTargetQueues>
+    <!-- <HelixTargetQueues>Windows.10.Amd64.Open;Ubuntu.1604.Open</HelixTargetQueues> -->
     
     <!--
       'true' to enable the xunit reporter. Default 'false'
